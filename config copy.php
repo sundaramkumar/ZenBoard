@@ -13,8 +13,8 @@ try {
 
 // Update existing columns and add new one
 try {
-  // First, drop the foreign key constraint from cards table
-  $pdo->exec("ALTER TABLE cards DROP FOREIGN KEY cards_ibfk_1");
+  // First, drop the foreign key constraint from tasks table
+  $pdo->exec("ALTER TABLE tasks DROP FOREIGN KEY tasks_ibfk_1");
 
   // Drop existing columns table
   $pdo->exec("DROP TABLE IF EXISTS columns");
@@ -28,10 +28,10 @@ try {
       )
   ");
 
-  // Recreate cards table
+  // Recreate tasks table
   $pdo->exec("
 
-  CREATE TABLE IF NOT EXISTS cards (
+  CREATE TABLE IF NOT EXISTS tasks (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(200) NOT NULL,
     description TEXT,
@@ -62,24 +62,24 @@ try {
 
   // Recreate foreign key constraint
   $pdo->exec("
-      ALTER TABLE cards
-      ADD CONSTRAINT cards_ibfk_1
+      ALTER TABLE tasks
+      ADD CONSTRAINT tasks_ibfk_1
       FOREIGN KEY (column_id) REFERENCES columns(id)
   ");
 
-  // Update any existing cards that were in the "To Do" column (id=1)
+  // Update any existing tasks that were in the "To Do" column (id=1)
   // to be in "Selected for Development" (now id=2)
   // $pdo->exec("
-  //     UPDATE cards
+  //     UPDATE tasks
   //     SET column_id = 2
   //     WHERE column_id = 1
   // ");
 
 
 
-  // Add user_id column to cards table
+  // Add user_id column to tasks table
   $pdo->exec("
-      ALTER TABLE cards
+      ALTER TABLE tasks
       ADD COLUMN user_id INT DEFAULT NULL,
       ADD CONSTRAINT fk_user
       FOREIGN KEY (user_id) REFERENCES users(id)

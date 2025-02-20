@@ -4,36 +4,36 @@
  * sprint board
  * backlog entry
  * user assignment
- * add tags/labels for cards
- * add due date for cards
- * add comments for cards
- * add attachments for cards
- * add card description
- * add card priority
- * add card estimation
- * add card points
- * add card progress
- * add card start date
- * add card end date
- * add card color
- * add card type
- * add card status
- * add card resolution
- * add card fix version
- * add card affected version
- * add card components
- * add card epic
- * add card story points
- * add card sprint
- * add card release
- * add card environment
- * add card assignee
- * add card reporter
- * add card watchers
- * add card votes
- * add card linked issues
- * add card sub-tasks
- * add card parent task
+ * add tags/labels for tasks
+ * add due date for tasks
+ * add comments for tasks
+ * add attachments for tasks
+ * add task description
+ * add task priority
+ * add task estimation
+ * add task points
+ * add task progress
+ * add task start date
+ * add task end date
+ * add task color
+ * add task type
+ * add task status
+ * add task resolution
+ * add task fix version
+ * add task affected version
+ * add task components
+ * add task epic
+ * add task story points
+ * add task sprint
+ * add task release
+ * add task environment
+ * add task assignee
+ * add task reporter
+ * add task watchers
+ * add task votes
+ * add task linked issues
+ * add task sub-tasks
+ * add task parent task
  * this application is a kanban board. i want o add this feature. while adding a new card, i want to assign an user for the task. so need to add an users table and use
 */
 require_once 'config.php';
@@ -42,18 +42,18 @@ require_once 'config.php';
 $stmt = $pdo->query("SELECT * FROM columns ORDER BY `order`");
 $columns = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Fetch all cards
-$stmt = $pdo->query("SELECT * FROM cards ORDER BY `order`");
-$cards = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// Fetch all tasks
+$stmt = $pdo->query("SELECT * FROM tasks ORDER BY `order`");
+$tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch all users
 $stmt = $pdo->query("SELECT * FROM users");
 $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Group cards by column
-$cards_by_column = [];
-foreach ($cards as $card) {
-    $cards_by_column[$card['column_id']][] = $card;
+// Group tasks by column
+$tasks_by_column = [];
+foreach ($tasks as $card) {
+    $tasks_by_column[$card['column_id']][] = $card;
 }
 ?>
 
@@ -62,13 +62,13 @@ foreach ($cards as $card) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kanban Board</title>
-
-
-    <!-- <link href="../css/bootstrap.min.css" rel="stylesheet"> -->
-    <!-- <link href="../font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css" /> -->
+    <title>ZenBoard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=ADLaM+Display&family=Aclonica&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <style>
-      @import url("https://fonts.googleapis.com/css2?family=Roboto&display=swap");
+        @import url('https://fonts.googleapis.com/css2?family=ADLaM+Display&family=Aclonica&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
         .card.dragging {
             opacity: 0.5;
         }
@@ -78,14 +78,21 @@ foreach ($cards as $card) {
         body, html {
           margin:15px;
           padding: 0;
-          font-family: 'Roboto', sans-serif;
+          font-family: 'Montserrat', sans-serif;
+        }
+        h1, h2 {
+            font-family: 'Roboto', sans-serif;
+        }
+        #sidebar {
+            z-index: 1000;
         }
     </style>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+      <script src="https://kit.fontawesome.com/4e0b417112.js" crossorigin="anonymous"></script>
+
 </head>
 <body class="bg-gray-100">
     <div class="max-w-8xl mx-auto">
-        <h1 class="text-3xl font-bold mb-6">Kanban Board</h1>
+        <h1 class="text-3xl font-bold mb-6">ZenBoard</h1>
 
         <div class="flex gap-4">
             <?php foreach ($columns as $column): ?>
@@ -122,19 +129,26 @@ foreach ($cards as $card) {
                      ondragover="handleDragOver(event)"
                      ondrop="handleDrop(event)">
 
-                    <?php if (isset($cards_by_column[$column['id']])): ?>
-                        <?php foreach ($cards_by_column[$column['id']] as $card): ?>
+                    <?php if (isset($tasks_by_column[$column['id']])): ?>
+                        <?php foreach ($tasks_by_column[$column['id']] as $card): ?>
                         <div class="card bg-white border rounded-lg p-3 mb-2 shadow cursor-move"
                              draggable="true"
                              data-card-id="<?= $card['id'] ?>"
                              ondragstart="handleDragStart(event)"
                              ondragend="handleDragEnd(event)">
-                            <div class="flex justify-between items-start">
-                                <p><?= htmlspecialchars($card['title']) ?></p>
-                                <button onclick="deleteCard(<?= $card['id'] ?>)"
-                                        class="text-gray-400 hover:text-gray-600">×</button>
+                            <div class="flex justify-between">
+                                <p class="items-start"><?= htmlspecialchars($card['title']) ?></p>
+                                <p class="items-end">
+                                <!-- <i class="fa fa-edit fa-sm text-gray-400 hover:text-gray-600"></i> -->
+                                <button onclick="editTask(<?= $card['id'] ?>)"
+                                        class="text-gray-400 hover:text-gray-600"><i class="fa fa-edit fa-xs"></i></button>
+                                <button onclick="deleteTask(<?= $card['id'] ?>)"
+                                        class="text-gray-400 hover:text-gray-600"><i class="fa fa-times fa-xs"></i></button>
+                            </p>
+
                             </div>
                             <div class="text-sm text-gray-500 mt-2">
+                            <p><?= htmlspecialchars($card['description']) ?></p>
                                 Assigned To: <?= htmlspecialchars($users[array_search($card['user_id'], array_column($users, 'id'))]['username']) ?>
                             </div>
                         </div>
@@ -143,11 +157,14 @@ foreach ($cards as $card) {
                 </div>
                 <?php if (strtolower($column['name']) == 'backlog'): ?>
                 <div class="p-4 border-t border-gray-200">
-                    <form onsubmit="addCard(event, <?= $column['id'] ?>)" class="space-y-2">
+                    <form onsubmit="addTask(event, <?= $column['id'] ?>)" class="space-y-2">
                         <input type="text"
                                name="title"
                                placeholder="Enter task..."
                                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <textarea name="description"
+                                  placeholder="Enter description..."
+                                  class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
                         <select name="user_id" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                             <option value="">Assign user...</option>
                             <?php foreach ($users as $user): ?>
@@ -156,7 +173,7 @@ foreach ($cards as $card) {
                         </select>
                         <button type="submit"
                                 class="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
-                            Add Card
+                            Add Task
                         </button>
                     </form>
                 </div>
@@ -165,6 +182,41 @@ foreach ($cards as $card) {
             <?php endforeach; ?>
         </div>
     </div>
+<!-- right side bar -->
+<div id="sidebar" class="fixed right-0 top-0 h-full w-80 bg-white shadow-lg transform translate-x-full transition-transform">
+    <div class="flex  justify-between p-4 border-b">
+        <h2 class="text-xl font-semibold items-start">Edit Task</h2>
+        <button onclick="closeSidebar()" class="text-gray-400 hover:text-gray-600 float-right items-end">
+            <i class="fa fa-times"></i></button>
+    </div>
+    <div class="p-4">
+        <form id="editTaskForm" onsubmit="saveTask(event)">
+            <input type="hidden" name="card_id" id="editCardId">
+            <div class="mb-4">
+                <label for="editTitle" class="block text-sm font-medium text-gray-700">Title</label>
+                <input type="text" name="title" id="editTitle" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div class="mb-4">
+                <label for="editDescription" class="block text-sm font-medium text-gray-700">Description</label>
+                <textarea name="description" id="editDescription" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+            </div>
+            <div class="mb-4">
+                <label for="editUserId" class="block text-sm font-medium text-gray-700">Assign User</label>
+                <select name="user_id" id="editUserId" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Assign user...</option>
+                    <?php foreach ($users as $user): ?>
+                        <option value="<?= $user['id'] ?>"><?= htmlspecialchars($user['username']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <button type="submit" class="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Save Task</button>
+        </form>
+    </div>
+</div>
+
+<!-- right side bar -->
+
+
     <script>
         let draggedCard = null;
         const users = <?= json_encode($users) ?>;
@@ -223,11 +275,12 @@ foreach ($cards as $card) {
             targetColumn.classList.remove('drag-over');
         }
 
-        function addCard(event, columnId) {
+        function addTask(event, columnId) {
           event.preventDefault();
           const form = event.target;
           const title = form.title.value;
           const userId = form.user_id.value;
+          const description = form.description.value;
           const dropZone = document.querySelector(`[data-column-id="${columnId}"]`);
 
           if (!title.trim()) return;
@@ -248,7 +301,7 @@ foreach ($cards as $card) {
               headers: {
                   'Content-Type': 'application/x-www-form-urlencoded',
               },
-              body: `title=${encodeURIComponent(title)}&column_id=${columnId}&user_id=${userId}`
+              body: `title=${encodeURIComponent(title)}&description=${description}&column_id=${columnId}&user_id=${userId}`
           })
           .then(response => response.json())
           .then(data => {
@@ -264,10 +317,11 @@ foreach ($cards as $card) {
                   newCard.innerHTML = `
                       <div class="flex justify-between items-start">
                           <p>${escapeHtml(title)}</p>
-                          <button onclick="deleteCard(${data.card_id})"
-                                  class="text-gray-400 hover:text-gray-600">×</button>
+                          <button onclick="deleteTask(${data.card_id})"
+                                  class="text-gray-400 hover:text-gray-600">x</button>
                       </div>
                       <div class="text-sm text-gray-500 mt-2">
+                       <p>${escapeHtml(description)}</p>
                           Assigned To: ${escapeHtml(assignedUser ? assignedUser.username : 'Unassigned')}
                       </div>
                   `;
@@ -276,20 +330,54 @@ foreach ($cards as $card) {
                   dropZone.replaceChild(newCard, tempCard);
               } else {
                   dropZone.removeChild(tempCard);
-                  alert('Failed to add card. Please try again.');
+                  alert('Failed to add task. Please try again.');
               }
           })
           .catch(error => {
               console.error('Error:', error);
               dropZone.removeChild(tempCard);
-              alert('Failed to add card. Please try again.');
+              alert('Failed to add task. Please try again.');
           });
 
           form.reset();
       }
+function editTask(cardId) {
+    fetch('get_card.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `card_id=${cardId}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const card = data.card;
+            document.getElementById('editCardId').value = card.id;
+            document.getElementById('editTitle').value = card.title;
+            document.getElementById('editDescription').value = card.description;
+            document.getElementById('editUserId').value = card.user_id;
 
+            openSidebar();
+        } else {
+            alert('Failed to fetch card details. Please try again.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to fetch card details. Please try again.');
+    });
+}
 
-        function deleteCard(cardId) {
+function openSidebar() {
+    document.getElementById('sidebar').classList.remove('translate-x-full');
+}
+
+function closeSidebar() {
+    document.getElementById('sidebar').classList.add('translate-x-full');
+}
+
+        function deleteTask(cardId) {
             if (!confirm('Are you sure you want to delete this card?')) return;
 
             const card = document.querySelector(`[data-card-id="${cardId}"]`);
