@@ -37,7 +37,18 @@ $init_sql = "
         email VARCHAR(100) NOT NULL
     );
 
+CREATE TABLE tags (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL
+);
 
+CREATE TABLE task_tags (
+    task_id INT NOT NULL,
+    tag_id INT NOT NULL,
+    FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE,
+    PRIMARY KEY (task_id, tag_id)
+);
     ";
     // INSERT INTO columns (id, name, `order`) VALUES
     // (1, 'Backlog', 1),

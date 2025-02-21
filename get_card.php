@@ -9,7 +9,13 @@ if (isset($_POST['card_id'])) {
     $card = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($card) {
-        echo json_encode(['success' => true, 'card' => $card]);
+        $stmt = $pdo->prepare("SELECT tags.name FROM tags
+                               JOIN task_tags ON tags.id = task_tags.tag_id
+                               WHERE task_tags.task_id = ?");
+        $stmt->execute([$card_id]);
+        $tags = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        echo json_encode(['success' => true, 'card' => $card, 'tags' => $tags]);
     } else {
         echo json_encode(['success' => false, 'message' => 'Card not found']);
     }

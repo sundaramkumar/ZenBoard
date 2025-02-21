@@ -3,8 +3,8 @@
  * todo
  * sprint board
  * backlog entry
- * user assignment
- * add tags/labels for tasks
+ * user assignment - done
+ * add tags/labels for tasks - done
  * add due date for tasks
  * add comments for tasks
  * add attachments for tasks
@@ -64,6 +64,7 @@ foreach ($tasks as $card) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ZenBoard</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link href="./css/style.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=ADLaM+Display&family=Aclonica&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
@@ -81,10 +82,19 @@ foreach ($tasks as $card) {
           font-family: 'Montserrat', sans-serif;
         }
         h1, h2 {
-            font-family: 'Roboto', sans-serif;
+                font-family: 'ADLaM Display', sans-serif;
         }
         #sidebar {
             z-index: 1000;
+        }
+        .tag {
+            display: inline-block;
+            background-color: #e2e8f0;
+            color: #2d3748;
+            padding: 0.2em 0.5em;
+            border-radius: 0.25em;
+            margin-right: 0.5em;
+            font-size: 0.75em;
         }
     </style>
       <script src="https://kit.fontawesome.com/4e0b417112.js" crossorigin="anonymous"></script>
@@ -92,8 +102,11 @@ foreach ($tasks as $card) {
 </head>
 <body class="bg-gray-100">
     <div class="max-w-8xl mx-auto">
-        <h1 class="text-3xl font-bold mb-6">ZenBoard</h1>
-
+        <div class="mb-2">
+            <div class="inline-block"><img src="./images/logo.png" style="width: 50px; height: 50px;"/></div>
+            <div class="inline-block heading antialiased">ZenBoard</div>
+            <!-- <div class="subtitle text-blue-500">A calm and organized approach to task management.</div> -->
+        </div>
         <div class="flex gap-4">
             <?php foreach ($columns as $column): ?>
             <div class="w-80 bg-white rounded-lg shadow">
@@ -151,6 +164,17 @@ foreach ($tasks as $card) {
                             <p><?= htmlspecialchars($card['description']) ?></p>
                                 Assigned To: <?= htmlspecialchars($users[array_search($card['user_id'], array_column($users, 'id'))]['username']) ?>
                             </div>
+                            <div class="tags mt-2">
+        <?php
+        $stmt = $pdo->prepare("SELECT tags.name FROM tags
+                               JOIN task_tags ON tags.id = task_tags.tag_id
+                               WHERE task_tags.task_id = ?");
+        $stmt->execute([$card['id']]);
+        $tags = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        foreach ($tags as $tag): ?>
+            <span class="tag"><?= htmlspecialchars($tag) ?></span>
+        <?php endforeach; ?>
+    </div>
                         </div>
                         <?php endforeach; ?>
                     <?php endif; ?>
@@ -208,6 +232,10 @@ foreach ($tasks as $card) {
                         <option value="<?= $user['id'] ?>"><?= htmlspecialchars($user['username']) ?></option>
                     <?php endforeach; ?>
                 </select>
+            </div>
+            <div class="mb-4">
+                <label for="editTags" class="block text-sm font-medium text-gray-700">Tags</label>
+                <input type="text" name="tags" id="editTags" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Comma-separated tags">
             </div>
             <button type="submit" class="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Save Task</button>
         </form>
@@ -341,34 +369,79 @@ foreach ($tasks as $card) {
 
           form.reset();
       }
-function editTask(cardId) {
-    fetch('get_card.php', {
+      function editTask(cardId) {
+        fetch('get_card.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `card_id=${cardId}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const card = data.card;
+                document.getElementById('editCardId').value = card.id;
+                document.getElementById('editTitle').value = card.title;
+                document.getElementById('editDescription').value = card.description;
+                document.getElementById('editUserId').value = card.user_id;
+                document.getElementById('editTags').value = data.tags.join(', ');
+
+                openSidebar();
+            } else {
+                alert('Failed to fetch card details. Please try again.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to fetch card details. Please try again.');
+        });
+    }
+
+    function saveTask(event) {
+    event.preventDefault();
+    const form = event.target;
+    const cardId = form.card_id.value;
+    const title = form.title.value;
+    const description = form.description.value;
+    const userId = form.user_id.value;
+    const tags = form.tags.value;
+
+    fetch('update_card.php', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: `card_id=${cardId}`
+        body: `card_id=${cardId}&title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&user_id=${userId}&tags=${encodeURIComponent(tags)}`
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            const card = data.card;
-            document.getElementById('editCardId').value = card.id;
-            document.getElementById('editTitle').value = card.title;
-            document.getElementById('editDescription').value = card.description;
-            document.getElementById('editUserId').value = card.user_id;
+            const card = document.querySelector(`[data-card-id="${cardId}"]`);
+            card.querySelector('p').innerText = title;
+            card.querySelector('.text-sm').innerText = description;
+            card.dataset.userId = userId;
 
-            openSidebar();
+            // Update tags display
+            const tagsContainer = card.querySelector('.tags');
+            tagsContainer.innerHTML = '';
+            tags.split(',').forEach(tag => {
+                const tagElement = document.createElement('span');
+                tagElement.className = 'tag';
+                tagElement.innerText = tag.trim();
+                tagsContainer.appendChild(tagElement);
+            });
+
+            closeSidebar();
         } else {
-            alert('Failed to fetch card details. Please try again.');
+            alert('Failed to save task. Please try again.');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Failed to fetch card details. Please try again.');
+        alert('Failed to save task. Please try again.');
     });
 }
-
 function openSidebar() {
     document.getElementById('sidebar').classList.remove('translate-x-full');
 }

@@ -1,23 +1,38 @@
 <?php
 require_once 'config.php';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if (isset($_POST['card_id'], $_POST['title'], $_POST['description'], $_POST['user_id'], $_POST['tags'])) {
     $card_id = $_POST['card_id'];
-    $column_id = $_POST['column_id'];
+    $title = $_POST['title'];
+    $description = $_POST['description'];
+    $user_id = $_POST['user_id'];
+    $tags = explode(',', $_POST['tags']);
 
-    try {
-        // Get the highest order in the target column
-        $stmt = $pdo->prepare("SELECT MAX(`order`) FROM tasks WHERE column_id = ?");
-        $stmt->execute([$column_id]);
-        $maxOrder = $stmt->fetchColumn() ?: 0;
+    $stmt = $pdo->prepare("UPDATE tasks SET title = ?, description = ?, user_id = ? WHERE id = ?");
+    $stmt->execute([$title, $description, $user_id, $card_id]);
 
-        // Update card
-        $stmt = $pdo->prepare("UPDATE tasks SET column_id = ?, `order` = ? WHERE id = ?");
-        $stmt->execute([$column_id, $maxOrder + 1, $card_id]);
+    // Update tags
+    $pdo->prepare("DELETE FROM task_tags WHERE task_id = ?")->execute([$card_id]);
+    foreach ($tags as $tag) {
+        $tag = trim($tag);
+        if ($tag) {
+            $stmt = $pdo->prepare("SELECT id FROM tags WHERE name = ?");
+            $stmt->execute([$tag]);
+            $tag_id = $stmt->fetchColumn();
 
-        echo json_encode(['success' => true]);
-    } catch(PDOException $e) {
-        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+            if (!$tag_id) {
+                $stmt = $pdo->prepare("INSERT INTO tags (name) VALUES (?)");
+                $stmt->execute([$tag]);
+                $tag_id = $pdo->lastInsertId();
+            }
+
+            $stmt = $pdo->prepare("INSERT INTO task_tags (task_id, tag_id) VALUES (?, ?)");
+            $stmt->execute([$card_id, $tag_id]);
+        }
     }
+
+    echo json_encode(['success' => true]);
+} else {
+    echo json_encode(['success' => false, 'message' => 'Invalid request']);
 }
 ?>
