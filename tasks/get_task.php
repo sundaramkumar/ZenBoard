@@ -1,5 +1,5 @@
 <?php
-require_once 'config.php';
+require_once '../db/dbconn.php';
 
 if (isset($_POST['card_id'])) {
     $card_id = $_POST['card_id'];

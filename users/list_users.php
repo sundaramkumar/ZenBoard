@@ -1,9 +1,7 @@
 <?php
-require_once 'config.php';
+require_once '../db/dbconn.php';
+include_once '../db/fetch_data.php';
 
-// Fetch all users
-$stmt = $pdo->query("SELECT * FROM users");
-$users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>

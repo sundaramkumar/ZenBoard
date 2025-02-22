@@ -1,8 +1,19 @@
 <?php
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+session_start();
+if (!isset($_SESSION['userName']) || !isset($_SESSION['userId'])) {
+  header('Location: login.php');
+  exit;
+}
 /***
  * todo
  * sprint board
  * backlog entry
+ * add filter to the board to see ex. tasks that are due for today, tasks that are due for this week, tasks that are due for this month, tasks that are due for this year
+ * add filter to the board to see ex. tasks that are assigned to me, tasks that are assigned to other users
+ * login - done
+ * logout - done
  * user assignment - done
  * add tags/labels for tasks - done
  * add due date for tasks
@@ -36,25 +47,9 @@
  * add task parent task
  * this application is a kanban board. i want o add this feature. while adding a new card, i want to assign an user for the task. so need to add an users table and use
 */
-require_once 'config.php';
+require_once 'db/dbconn.php';
+include_once 'db/fetch_data.php';
 
-// Fetch all columns
-$stmt = $pdo->query("SELECT * FROM columns ORDER BY `order`");
-$columns = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Fetch all tasks
-$stmt = $pdo->query("SELECT * FROM tasks ORDER BY `order`");
-$tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Fetch all users
-$stmt = $pdo->query("SELECT * FROM users");
-$users = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Group tasks by column
-$tasks_by_column = [];
-foreach ($tasks as $card) {
-    $tasks_by_column[$card['column_id']][] = $card;
-}
 ?>
 
 <!DOCTYPE html>
@@ -68,36 +63,10 @@ foreach ($tasks as $card) {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=ADLaM+Display&family=Aclonica&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=ADLaM+Display&family=Aclonica&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
-        .card.dragging {
-            opacity: 0.5;
-        }
-        .column-drop-zone.drag-over {
-            background-color: #f3f4f6;
-        }
-        body, html {
-          margin:15px;
-          padding: 0;
-          font-family: 'Montserrat', sans-serif;
-        }
-        h1, h2 {
-                font-family: 'ADLaM Display', sans-serif;
-        }
-        #sidebar {
-            z-index: 1000;
-        }
-        .tag {
-            display: inline-block;
-            background-color: #e2e8f0;
-            color: #2d3748;
-            padding: 0.2em 0.5em;
-            border-radius: 0.25em;
-            margin-right: 0.5em;
-            font-size: 0.75em;
-        }
-    </style>
-      <script src="https://kit.fontawesome.com/4e0b417112.js" crossorigin="anonymous"></script>
+    <script src="https://kit.fontawesome.com/4e0b417112.js" crossorigin="anonymous"></script>
+    <script>
+      const users = <?= json_encode($users) ?>;
+    </script>
 
 </head>
 <body class="bg-gray-100">
@@ -165,16 +134,16 @@ foreach ($tasks as $card) {
                                 Assigned To: <?= htmlspecialchars($users[array_search($card['user_id'], array_column($users, 'id'))]['username']) ?>
                             </div>
                             <div class="tags mt-2">
-        <?php
-        $stmt = $pdo->prepare("SELECT tags.name FROM tags
-                               JOIN task_tags ON tags.id = task_tags.tag_id
-                               WHERE task_tags.task_id = ?");
-        $stmt->execute([$card['id']]);
-        $tags = $stmt->fetchAll(PDO::FETCH_COLUMN);
-        foreach ($tags as $tag): ?>
-            <span class="tag"><?= htmlspecialchars($tag) ?></span>
-        <?php endforeach; ?>
-    </div>
+                                <?php
+                                $stmt = $pdo->prepare("SELECT tags.name FROM tags
+                                                    JOIN task_tags ON tags.id = task_tags.tag_id
+                                                    WHERE task_tags.task_id = ?");
+                                $stmt->execute([$card['id']]);
+                                $tags = $stmt->fetchAll(PDO::FETCH_COLUMN);
+                                foreach ($tags as $tag): ?>
+                                    <span class="tag"><?= htmlspecialchars($tag) ?></span>
+                                <?php endforeach; ?>
+                            </div>
                         </div>
                         <?php endforeach; ?>
                     <?php endif; ?>
@@ -234,261 +203,23 @@ foreach ($tasks as $card) {
                 </select>
             </div>
             <div class="mb-4">
+                <label for="editDueDate" class="block text-sm font-medium text-gray-700">Due Date</label>
+                <input type="date" name="due_date" id="editDueDate" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div class="mb-4">
                 <label for="editTags" class="block text-sm font-medium text-gray-700">Tags</label>
                 <input type="text" name="tags" id="editTags" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Comma-separated tags">
             </div>
+
             <button type="submit" class="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Save Task</button>
         </form>
     </div>
 </div>
 
 <!-- right side bar -->
-
-
-    <script>
-        let draggedCard = null;
-        const users = <?= json_encode($users) ?>;
-
-        function handleDragStart(event) {
-            draggedCard = event.target;
-            event.target.classList.add('dragging');
-        }
-
-        function handleDragEnd(event) {
-            event.target.classList.remove('dragging');
-            draggedCard = null;
-            document.querySelectorAll('.column-drop-zone').forEach(zone => {
-                zone.classList.remove('drag-over');
-            });
-        }
-
-        function handleDragOver(event) {
-            event.preventDefault();
-            event.currentTarget.classList.add('drag-over');
-        }
-
-        function handleDrop(event) {
-            event.preventDefault();
-            const targetColumn = event.currentTarget;
-            const sourceColumn = draggedCard.parentElement;
-            const columnId = targetColumn.dataset.columnId;
-            const cardId = draggedCard.dataset.cardId;
-
-            // Optimistically update UI
-            targetColumn.appendChild(draggedCard);
-
-            // Update card's column in the database
-            fetch('update_card.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `card_id=${cardId}&column_id=${columnId}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (!data.success) {
-                    // If update fails, revert the UI change
-                    sourceColumn.appendChild(draggedCard);
-                    alert('Failed to move card. Please try again.');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                // Revert UI on error
-                sourceColumn.appendChild(draggedCard);
-                alert('Failed to move card. Please try again.');
-            });
-
-            targetColumn.classList.remove('drag-over');
-        }
-
-        function addTask(event, columnId) {
-          event.preventDefault();
-          const form = event.target;
-          const title = form.title.value;
-          const userId = form.user_id.value;
-          const description = form.description.value;
-          const dropZone = document.querySelector(`[data-column-id="${columnId}"]`);
-
-          if (!title.trim()) return;
-
-          // Create card element with loading state
-          const tempCard = document.createElement('div');
-          tempCard.className = 'card bg-white border rounded-lg p-3 mb-2 shadow cursor-move opacity-50';
-          tempCard.innerHTML = `
-              <div class="flex justify-between items-start">
-                  <p>${escapeHtml(title)}</p>
-                  <span class="text-gray-400">Adding...</span>
-              </div>
-          `;
-          dropZone.appendChild(tempCard);
-
-          fetch('add_card.php', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/x-www-form-urlencoded',
-              },
-              body: `title=${encodeURIComponent(title)}&description=${description}&column_id=${columnId}&user_id=${userId}`
-          })
-          .then(response => response.json())
-          .then(data => {
-              if (data.success) {
-                  // Find the assigned user's name
-                  const assignedUser = users.find(user => user.id == userId);
-
-                  // Replace temporary card with actual card
-                  const newCard = document.createElement('div');
-                  newCard.className = 'card bg-white border rounded-lg p-3 mb-2 shadow cursor-move';
-                  newCard.draggable = true;
-                  newCard.dataset.cardId = data.card_id;
-                  newCard.innerHTML = `
-                      <div class="flex justify-between items-start">
-                          <p>${escapeHtml(title)}</p>
-                          <button onclick="deleteTask(${data.card_id})"
-                                  class="text-gray-400 hover:text-gray-600">x</button>
-                      </div>
-                      <div class="text-sm text-gray-500 mt-2">
-                       <p>${escapeHtml(description)}</p>
-                          Assigned To: ${escapeHtml(assignedUser ? assignedUser.username : 'Unassigned')}
-                      </div>
-                  `;
-                  newCard.addEventListener('dragstart', handleDragStart);
-                  newCard.addEventListener('dragend', handleDragEnd);
-                  dropZone.replaceChild(newCard, tempCard);
-              } else {
-                  dropZone.removeChild(tempCard);
-                  alert('Failed to add task. Please try again.');
-              }
-          })
-          .catch(error => {
-              console.error('Error:', error);
-              dropZone.removeChild(tempCard);
-              alert('Failed to add task. Please try again.');
-          });
-
-          form.reset();
-      }
-      function editTask(cardId) {
-        fetch('get_card.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: `card_id=${cardId}`
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const card = data.card;
-                document.getElementById('editCardId').value = card.id;
-                document.getElementById('editTitle').value = card.title;
-                document.getElementById('editDescription').value = card.description;
-                document.getElementById('editUserId').value = card.user_id;
-                document.getElementById('editTags').value = data.tags.join(', ');
-
-                openSidebar();
-            } else {
-                alert('Failed to fetch card details. Please try again.');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Failed to fetch card details. Please try again.');
-        });
-    }
-
-    function saveTask(event) {
-    event.preventDefault();
-    const form = event.target;
-    const cardId = form.card_id.value;
-    const title = form.title.value;
-    const description = form.description.value;
-    const userId = form.user_id.value;
-    const tags = form.tags.value;
-
-    fetch('update_card.php', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: `card_id=${cardId}&title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&user_id=${userId}&tags=${encodeURIComponent(tags)}`
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            const card = document.querySelector(`[data-card-id="${cardId}"]`);
-            card.querySelector('p').innerText = title;
-            card.querySelector('.text-sm').innerText = description;
-            card.dataset.userId = userId;
-
-            // Update tags display
-            const tagsContainer = card.querySelector('.tags');
-            tagsContainer.innerHTML = '';
-            tags.split(',').forEach(tag => {
-                const tagElement = document.createElement('span');
-                tagElement.className = 'tag';
-                tagElement.innerText = tag.trim();
-                tagsContainer.appendChild(tagElement);
-            });
-
-            closeSidebar();
-        } else {
-            alert('Failed to save task. Please try again.');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Failed to save task. Please try again.');
-    });
-}
-function openSidebar() {
-    document.getElementById('sidebar').classList.remove('translate-x-full');
-}
-
-function closeSidebar() {
-    document.getElementById('sidebar').classList.add('translate-x-full');
-}
-
-        function deleteTask(cardId) {
-            if (!confirm('Are you sure you want to delete this card?')) return;
-
-            const card = document.querySelector(`[data-card-id="${cardId}"]`);
-            // Add loading state
-            card.classList.add('opacity-50');
-
-            fetch('delete_card.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `card_id=${cardId}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    card.remove();
-                } else {
-                    card.classList.remove('opacity-50');
-                    alert('Failed to delete card. Please try again.');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                card.classList.remove('opacity-50');
-                alert('Failed to delete card. Please try again.');
-            });
-        }
-
-        // Helper function to escape HTML special characters
-        function escapeHtml(unsafe) {
-            return unsafe
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
-        }
-    </script>
+<script src="./scripts/utils.js"></script>
+<script src="./scripts/board.js"></script>
+<script src="./scripts/tasks.js"></script>
+<div id="snackbar" class="bg-blue-200"></div>
 </body>
 </html>

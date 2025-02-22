@@ -1,16 +1,4 @@
 <?php
-$host = 'localhost';
-$dbname = 'kanban_db';
-$username = 'kanban_user';
-$password = 'kanban_user';
-
-try {
-  $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
-  $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch(PDOException $e) {
-  echo "Connection failed: " . $e->getMessage();
-}
-
 $init_sql = "
       CREATE TABLE IF NOT EXISTS columns (
           id INT AUTO_INCREMENT PRIMARY KEY,
@@ -35,6 +23,11 @@ $init_sql = "
         id INT AUTO_INCREMENT PRIMARY KEY,
         username VARCHAR(100) NOT NULL,
         email VARCHAR(100) NOT NULL
+        ADD COLUMN password VARCHAR(255) NOT NULL,
+        ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ADD COLUMN loginip VARCHAR(255) NOT NULL,
+        ADD COLUMN lastlogin TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     );
 
 CREATE TABLE tags (
@@ -63,6 +56,12 @@ CREATE TABLE task_tags (
 //     echo "Table creation failed: " . $e->getMessage();
 // }
 /*
+// Optionally, you can hash and set passwords for existing users
+$users = $pdo->query("SELECT * FROM users")->fetchAll(PDO::FETCH_ASSOC);
+foreach ($users as $user) {
+    $hashedPassword = password_hash('password', PASSWORD_DEFAULT);
+    $pdo->prepare("UPDATE users SET password = ? WHERE id = ?")->execute([$hashedPassword, $user['id']]);
+}
 // Update existing columns and add new one
 try {
   // First, drop the foreign key constraint from tasks table
