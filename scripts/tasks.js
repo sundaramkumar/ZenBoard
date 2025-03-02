@@ -13,25 +13,27 @@ function addTask(event, columnId) {
   tempCard.className =
     "card bg-white border rounded-lg p-3 mb-2 shadow cursor-move opacity-50";
   tempCard.innerHTML = `
-      <div class="flex justify-between items-start">
-          <p>${escapeHtml(title)}</p>
-          <span class="text-gray-400">Adding...</span>
-      </div>
-  `;
+        <div class="flex justify-between items-start">
+            <p>${escapeHtml(title)}</p>
+            <span class="text-blue-400">Adding...</span>
+        </div>
+    `;
   dropZone.appendChild(tempCard);
 
-  fetch("./tasks/add_task.php", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
+  $.ajax({
+    url: "tasks.php",
+    type: "POST",
+    data: {
+      action: "add",
+      title: title,
+      description: description,
+      column_id: columnId,
+      user_id: userId,
     },
-    body: `title=${encodeURIComponent(
-      title
-    )}&description=${description}&column_id=${columnId}&user_id=${userId}`,
   })
-    .then((response) => response.json())
-    .then((data) => {
-      if (data.success) {
+    .done(function (response) {
+      if (response.includes("success")) {
+        var data = JSON.parse(response);
         // Find the assigned user's name
         const assignedUser = users.find((user) => user.id == userId);
 
@@ -41,62 +43,104 @@ function addTask(event, columnId) {
           "card bg-white border rounded-lg p-3 mb-2 shadow cursor-move";
         newCard.draggable = true;
         newCard.dataset.cardId = data.card_id;
+
         newCard.innerHTML = `
-              <div class="flex justify-between items-start">
-                  <p>${escapeHtml(title)}</p>
-                  <button onclick="deleteTask(${data.card_id})"
-                          class="text-gray-400 hover:text-gray-600">x</button>
-              </div>
-              <div class="text-sm text-gray-500 mt-2">
-               <p>${escapeHtml(description)}</p>
-                  Assigned To: ${escapeHtml(
-                    assignedUser ? assignedUser.username : "Unassigned"
-                  )}
-              </div>
-          `;
+                  <div class="flex justify-between">
+                      <p class="items-start mr-2">${escapeHtml(title)}</p>
+                      <p class="items-end whitespace-nowrap">
+                      <button onclick="editTask(${data.card_id})"
+                              class="text-gray-400 hover:text-gray-600"><i class="fa fa-edit fa-xs"></i></button>
+                      <button onclick="deleteTask(${data.card_id})"
+                              class="text-gray-400 hover:text-gray-600"><i class="fa fa-times fa-xs"></i></button>
+                      </p>
+                  </div>
+                  <div class="text-sm text-gray-500 mt-2">
+                      <p>${escapeHtml(description)}</p>
+                      Assigned To: ${escapeHtml(
+                        assignedUser ? assignedUser.username : "Unassigned"
+                      )}
+                  </div>
+              `;
         newCard.addEventListener("dragstart", handleDragStart);
         newCard.addEventListener("dragend", handleDragEnd);
         dropZone.replaceChild(newCard, tempCard);
+        showToast("Task added successfully");
       } else {
         dropZone.removeChild(tempCard);
-        alert("Failed to add task. Please try again.");
+        showToast("Failed to add task. Please try again.", "error");
       }
     })
-    .catch((error) => {
-      console.error("Error:", error);
+    .fail(function (jqXHR, textStatus, errorThrown) {
+      console.error("Error:", errorThrown);
       dropZone.removeChild(tempCard);
-      alert("Failed to add task. Please try again.");
+      showToast("Failed to add task. Please try again.", "error");
     });
-
   form.reset();
 }
-function editTask(cardId) {
-  fetch("./tasks/get_task.php", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
+
+function deleteTask(cardId) {
+  if (!confirm("Are you sure you want to delete this task?")) return;
+
+  const card = document.querySelector(`[data-card-id="${cardId}"]`);
+  // Add loading state
+  card.classList.add("opacity-50");
+
+  $.ajax({
+    url: "tasks.php",
+    type: "POST",
+    data: {
+      action: "delete",
+      card_id: cardId,
     },
-    body: `card_id=${cardId}`,
   })
-    .then((response) => response.json())
-    .then((data) => {
-      if (data.success) {
+    .done(function (response) {
+      if (response.includes("success")) {
+        card.remove();
+        showToast("Task deleted successfully");
+        closeSidebar();
+      } else {
+        card.classList.remove("opacity-50");
+        showToast("Failed to delete task. Please try again", "error");
+      }
+    })
+    .fail(function (jqXHR, textStatus, errorThrown) {
+      console.error("Error:", errorThrown);
+      card.classList.remove("opacity-50");
+      showToast("Failed to delete task. Please try again.", "error");
+    });
+}
+
+function editTask(cardId) {
+  $.ajax({
+    url: "tasks.php",
+    type: "POST",
+    data: {
+      action: "get",
+      card_id: cardId,
+    },
+  })
+    .done(function (response) {
+      if (response.includes("success")) {
+        var data = JSON.parse(response);
         const card = data.card;
-        document.getElementById("editCardId").value = card.id;
-        document.getElementById("editTitle").value = card.title;
-        document.getElementById("editDescription").value = card.description;
-        document.getElementById("editUserId").value = card.user_id;
-        document.getElementById("editTags").value = data.tags.join(", ");
-        document.getElementById("editDueDate").value = card.due_date;
+        const tags =
+          data.tags && data.tags.length > 0 ? data.tags.join(", ") : "";
+        console.log(data);
+        $("#editCardId").val(card.id);
+        $("#editTitle").val(card.title);
+        $("#editDescription").val(card.description);
+        $("#editUserId").val(card.user_id);
+        $("#editTags").val(tags);
+        $("#editDueDate").val(card.due_date);
 
         openSidebar();
       } else {
-        alert("Failed to fetch task details. Please try again.");
+        console.log("Error Occurred");
       }
     })
-    .catch((error) => {
-      console.error("Error:", error);
-      alert("Failed to fetch task details. Please try again.");
+    .fail(function (jqXHR, textStatus, errorThrown) {
+      console.error("Error:", errorThrown);
+      showToast("Failed to fetch task details. Please try again.", "error");
     });
 }
 
@@ -110,84 +154,32 @@ function saveTask(event) {
   const tags = form.tags.value;
   const dueDate = form.due_date.value;
 
-  fetch("./tasks/update_task.php", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
+  $.ajax({
+    url: "tasks.php",
+    type: "POST",
+    data: {
+      action: "update",
+      card_id: cardId,
+      title: title,
+      description: description,
+      user_id: userId,
+      tags: tags,
+      due_date: dueDate,
     },
-    body: `card_id=${cardId}&title=${encodeURIComponent(
-      title
-    )}&description=${encodeURIComponent(
-      description
-    )}&user_id=${userId}&tags=${encodeURIComponent(tags)}&due_date=${dueDate}`,
   })
-    .then((response) => response.json())
-    .then((data) => {
-      if (data.success) {
-        const card = document.querySelector(`[data-card-id="${cardId}"]`);
-        card.querySelector("p").innerText = title;
-        card.querySelector(".text-sm").innerText = description;
-        card.dataset.userId = userId;
-
-        // Update tags display
-        const tagsContainer = card.querySelector(".tags");
-        tagsContainer.innerHTML = "";
-        tags.split(",").forEach((tag) => {
-          const tagElement = document.createElement("span");
-          tagElement.className = "tag";
-          tagElement.innerText = tag.trim();
-          tagsContainer.appendChild(tagElement);
-        });
-
-        // Update due date display
-        const dueDateContainer = card.querySelector(".due-date");
-        if (dueDateContainer) {
-          dueDateContainer.innerText = `Due Date: ${dueDate}`;
-        } else {
-          const newDueDateContainer = document.createElement("div");
-          newDueDateContainer.className = "due-date text-sm text-gray-500 mt-2";
-          newDueDateContainer.innerText = `Due Date: ${dueDate}`;
-          card.appendChild(newDueDateContainer);
-        }
-
-        showToast("Task saved successfully!");
+    .done(function (response) {
+      console.log(response);
+      if (response.includes("success")) {
+        var data = JSON.parse(response);
+        console.log(data);
         closeSidebar();
+        showToast("Task updated successfully", "success");
       } else {
-        alert("Failed to save task. Please try again.");
+        showToast("Failed to save task. Please try again.", "error");
       }
     })
-    .catch((error) => {
-      console.error("Error:", error);
-      alert("Failed to save task. Please try again.");
-    });
-}
-
-function deleteTask(cardId) {
-  if (!confirm("Are you sure you want to delete this task?")) return;
-
-  const card = document.querySelector(`[data-card-id="${cardId}"]`);
-  // Add loading state
-  card.classList.add("opacity-50");
-
-  fetch("./tasks/delete_task.php", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: `card_id=${cardId}`,
-  })
-    .then((response) => response.json())
-    .then((data) => {
-      if (data.success) {
-        card.remove();
-      } else {
-        card.classList.remove("opacity-50");
-        alert("Failed to delete task. Please try again.");
-      }
-    })
-    .catch((error) => {
-      console.error("Error:", error);
-      card.classList.remove("opacity-50");
-      alert("Failed to delete task. Please try again.");
+    .fail(function (jqXHR, textStatus, errorThrown) {
+      console.error("Error:", errorThrown);
+      showToast("Failed to save task. Please try again.", "error");
     });
 }

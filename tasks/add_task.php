@@ -22,9 +22,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $max_order = $stmt->fetch(PDO::FETCH_ASSOC)['max_order'];
     $new_order = $max_order + 1;
 
-    $stmt = $pdo->prepare("INSERT INTO tasks (title, description, column_id, user_id, `order`) VALUES (?, ?, ?, ?, ?)");
-    $success = $stmt->execute([$title, $description, $column_id, $user_id, $new_order]);
-
+    $stmt = $pdo->prepare("INSERT INTO tasks (title, description, column_id, user_id, `order`, created_by) VALUES (?, ?, ?, ?, ?, ?)");
+    $success = $stmt->execute([$title, $description, $column_id, $user_id, $new_order, $_SESSION['userId']]);
+    $stmt->debugDumpParams();
     if ($success) {
         echo json_encode(['success' => true, 'card_id' => $pdo->lastInsertId()]);
     } else {

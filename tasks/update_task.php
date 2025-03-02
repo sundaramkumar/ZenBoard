@@ -1,6 +1,16 @@
 <?php
 require_once '../db/dbconn.php';
 
+function params($string, $data) {
+    $indexed = $data == array_values($data);
+    foreach ($data as $k => $v) {
+        if (is_string($v)) $v = "'$v'";
+        if ($indexed) $string = preg_replace('/\?/', $v, $string, 1);
+        else $string = str_replace(":$k", $v, $string);
+    }
+    return $string;
+}
+
 if (isset($_POST['card_id'], $_POST['title'], $_POST['description'], $_POST['user_id'], $_POST['tags'], $_POST['due_date'])) {
     $card_id = $_POST['card_id'];
     $title = $_POST['title'];
@@ -9,8 +19,11 @@ if (isset($_POST['card_id'], $_POST['title'], $_POST['description'], $_POST['use
     $tags = explode(',', $_POST['tags']);
     $due_date = $_POST['due_date'];
 
-    $stmt = $pdo->prepare("UPDATE tasks SET title = ?, description = ?, user_id = ?, due_date = ? WHERE id = ?");
-    $stmt->execute([$title, $description, $user_id, $due_date, $card_id]);
+    $qry = "UPDATE tasks SET title = ?, description = ?, user_id = ?, due_date = ? WHERE id = ?";
+    $data = array($title, $description, $user_id, $due_date, $card_id);
+
+    $stmt = $pdo->prepare($qry);
+    $stmt->execute($data);
 
     // Update tags
     $pdo->prepare("DELETE FROM task_tags WHERE task_id = ?")->execute([$card_id]);

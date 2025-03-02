@@ -29,26 +29,25 @@ function handleDrop(event) {
   targetColumn.appendChild(draggedCard);
 
   // Update card's column in the database
-  fetch("update_card.php", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
+  $.ajax({
+    url: "tasks.php",
+    type: "POST",
+    data: {
+      action: "move",
+      card_id: cardId,
+      column_id: columnId,
     },
-    body: `card_id=${cardId}&column_id=${columnId}`,
   })
-    .then((response) => response.json())
-    .then((data) => {
-      if (!data.success) {
-        // If update fails, revert the UI change
-        sourceColumn.appendChild(draggedCard);
-        alert("Failed to move card. Please try again.");
+    .done(function (data) {
+      if (data.includes("success")) {
+        showToast("Task moved Successfully");
+      } else {
+        console.log("Error Occurred");
       }
     })
-    .catch((error) => {
-      console.error("Error:", error);
-      // Revert UI on error
-      sourceColumn.appendChild(draggedCard);
-      alert("Failed to move card. Please try again.");
+    .fail(function (jqXHR, textStatus, errorThrown) {
+      console.error("Error:", errorThrown);
+      showToast("Failed to move task. Please try again.", "error");
     });
 
   targetColumn.classList.remove("drag-over");

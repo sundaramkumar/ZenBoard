@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body class="bg-gray-100 flex items-center justify-center h-screen">
     <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm">
       <div class="text-center">
-        <div class="inline-block"><img src="./images/logo.png" style="width: 50px; height: 50px;"/></div>
+        <div class="inline-block"><img src="./images/logonew.png" style="width: 80px; height: 50px;"/></div>
         <h1 class="inline-block antialiased heading">ZenBoard</h1>
         <h4 class="antialiased subtitle text-purple-700">A calm and organized approach to task management</h4>
       </div>

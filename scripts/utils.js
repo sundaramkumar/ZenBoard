@@ -16,12 +16,25 @@ function escapeHtml(unsafe) {
     .replace(/'/g, "&#039;");
 }
 
-function showToast(message) {
+function showToast(message, type = "success") {
   if (message == null) return;
-  var x = document.getElementById("snackbar");
-  x.innerHTML = message;
-  x.className = "show";
+  var x = $("#snackbar");
+  x.html(message);
+  // x.innerHTML = message;
+  // x.backgroundColor =
+  //   type == "success" ? "rgb(12, 165, 81)" : "rgb(204, 67, 25)";
+  if (type == "success") {
+    x.addClass("bg-green-400");
+    x.removeClass("bg-red-400");
+  } else {
+    x.addClass("bg-red-400");
+    x.removeClass("bg-green-400");
+  }
+  x.removeClass("hidden");
+  x.addClass("show");
+  // x.className = "show";
   setTimeout(function () {
-    x.className = x.className.replace("show", "");
+    x.removeClass("show");
+    x.addClass("hidden");
   }, 3000);
 }

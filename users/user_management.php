@@ -10,10 +10,11 @@ switch ($action) {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $username = $_POST['username'];
             $email = $_POST['email'];
+            $password = $_POST['password'];
 
             try {
-                $stmt = $pdo->prepare("INSERT INTO users (username, email) VALUES (?, ?)");
-                $stmt->execute([$username, $email]);
+                $stmt = $pdo->prepare("INSERT INTO users (username, email, password) VALUES (?, ?, ?)");
+                $stmt->execute([$username, $email, password_hash($password, PASSWORD_DEFAULT)]);
                 echo json_encode(['success' => true, 'user_id' => $pdo->lastInsertId()]);
             } catch (PDOException $e) {
                 echo json_encode(['success' => false, 'message' => $e->getMessage()]);
