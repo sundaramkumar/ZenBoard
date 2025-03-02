@@ -63,6 +63,7 @@ include_once 'db/fetch_data.php';
     <script src="https://kit.fontawesome.com/4e0b417112.js" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 
+    <link rel="icon" href="./images/favicon.ico" type="image/x-icon">
     <script>
       const users = <?= json_encode($users) ?>;
     </script>

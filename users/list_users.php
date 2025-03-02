@@ -27,12 +27,13 @@ include_once '../db/fetch_data.php';
     <link href="https://fonts.googleapis.com/css2?family=ADLaM+Display&family=Aclonica&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <script src="https://kit.fontawesome.com/4e0b417112.js" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <link rel="icon" href="../images/favicon.ico" type="image/x-icon">
 
 </head>
 <body class="bg-gray-100">
 		<div class="max-w-8xl mx-auto">
         <div class="mb-2 inline-block">
-            <div class="inline-block"><img src="../images/logo.png" style="width: 50px; height: 50px;"/></div>
+            <div class="inline-block"><img src="../images/logonew.png" style="width: 80px; height: 50px;"/></div>
             <div class="inline-block heading antialiased">ZenBoard</div>
             <!-- <div class="subtitle text-blue-500">A calm and organized approach to task management.</div> -->
         </div>
